@@ -1,0 +1,16 @@
+[MapFiles]
+Description = Zero Tolerance
+GMPFile = map-zero-tolerance.gmp
+STYFile = wil.sty
+SCRFile = map-zero-tolerance.scr
+MISFile = map-zero-tolerance.mis
+Version = 0.1
+
+[Map]
+UpDate = 2024-07-23
+CreaDate = 2024-07-23
+DuskSupport = true
+Author = https://github.com/Vorschreibung
+
+[Host]
+police = true

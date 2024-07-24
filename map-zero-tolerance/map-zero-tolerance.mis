@@ -1,0 +1,470 @@
+// [RUN] cog -r %
+//
+// @NOTE This is using https://nedbatchelder.com/code/cog run manually on this
+//       source file.
+
+// IDEA: Add gang (police remap) around important weapons/upgrades to incentivize vehicle usage
+
+// [[[cog
+// # GLOBAL COG VARIABLES
+// players = range(1, 7)
+// cop_search_time_in_sec = 14
+// oob_area = "/*x,y,z*/ 160.00, 137.00, 1.00, /*w,h*/ 60.00, 60.00"
+// ]]]
+// [[[end]]]
+
+// Playerspawns
+PLAYER_PED p1 = (167.50, 117.50, 2.00) 12 0
+PLAYER_PED p2 = (146.50, 148.50, 2.00) 12 0
+PLAYER_PED p3 = (167.50, 148.50, 2.00) 12 0
+PLAYER_PED p4 = (146.50, 117.50, 2.00) 12 0
+PLAYER_PED p5 = (146.50, 134.50, 2.00) 12 0
+PLAYER_PED p6 = (167.50, 134.50, 2.00) 12 0
+
+PARKED_CAR_DATA warpcar = (152.80, 138.50, 2.00) -1 270 LIMO2
+
+// [[[cog
+// # WEAPONS / ITEMS
+// from collections import namedtuple
+// from dataclasses import dataclass
+//
+// @dataclass
+// class Item:
+//     item_name: str
+//     pos: str
+//     respawn: int
+//     amount: int = 0
+//     id: str = ""
+//     item_id: str = ""
+//
+// item_ids_by_name = {
+//     "BRIBE"       : "COLLECT_33",
+//     "DOUBLE_FIRE" : "COLLECT_36",
+//     "DUAL_PISTOL" : "COLLECT_10",
+//     "ELECTRO"     : "COLLECT_03",
+//     "FLAME"       : "COLLECT_08",
+//     "GANG"        : "COLLECT_40",
+//     "GRENADE"     : "COLLECT_05",
+//     "HP"          : "COLLECT_30",
+//     "MG"          : "COLLECT_01",
+//     "MOLOTOV"     : "COLLECT_04",
+//     "PISTOL"      : "COLLECT_00",
+//     "RL"          : "COLLECT_02",
+//     "SHOTGUN"     : "COLLECT_06",
+//     "SMG"         : "COLLECT_09",
+//     "VEHBOMB"     : "COLLECT_15",
+//     "VEHGUN"      : "COLLECT_18",
+//     "VEHMINE"     : "COLLECT_17",
+// }
+//
+// ammo_smg = 2
+// ammo_molotov = 2
+// ammo_shotgun = 20
+//
+// # @NOTE a second is something like 128 respawn time units
+// # respawn_10s = 50
+// respawn_10s = 1280
+// respawn_20s = respawn_10s * 2
+// respawn_30s = respawn_10s * 3
+// respawn_1m = respawn_10s * 6
+// respawn_default = respawn_1m
+//
+// items = [
+//     Item("BRIBE",        "(160.00, 137.00, 2.00)",  respawn_10s, 1),
+//     Item("DOUBLE_FIRE",  "(154.50, 161.50, 2.00)",  respawn_1m, 1),
+//     Item("DOUBLE_FIRE",  "(162.00, 121.50, 4.00)",  respawn_1m, 1),
+//     Item("DUAL_PISTOL",  "(141.40, 111.40, 2.00)",  respawn_default, ammo_shotgun),
+//     Item("ELECTRO",      "(133.50, 126.50, 2.00)",  respawn_default * 2, 2),
+//     Item("FLAME",        "(180.50, 131.00, 2.00)",  respawn_1m * 2, 13),
+//     Item("GANG",         "(166.00, 133.00, 2.00)",  respawn_default, 1),
+//     Item("GRENADE",      "(153.30, 137.50, 4.20)",  respawn_20s, 10),
+//     Item("HP",           "(154.50, 126.50, 2.00)",  respawn_10s, 1),
+//     Item("MG",           "(140.50, 141.50, 2.00)",  respawn_default, 12),
+//     Item("MG",           "(165.00, 146.00, 4.00)",  respawn_default, 12),
+//     Item("MOLOTOV",      "(175.50, 111.50, 2.00)",  respawn_default, 15),
+//     Item("PISTOL",       "(159.00, 131.00, 6.00)",  respawn_10s, 1),
+//     Item("RL",           "(166.00, 119.00, 6.00)",  respawn_default * 2, 3),
+//     Item("SHOTGUN",      "(148.60, 122.40, 2.00)",  respawn_default, ammo_shotgun),
+//     Item("SHOTGUN",      "(148.90, 145.30, 2.00)",  respawn_default, ammo_shotgun),
+//     Item("SHOTGUN",      "(158.50, 122.40, 3.00)",  respawn_default, ammo_shotgun),
+//     Item("SMG",          "(176.00, 150.00, 2.00)",  respawn_default, 12),
+//     # Item("VEHMINE",      "(153.00, 130.30, 5.00)",  respawn_default, 6),
+//     Item("VEHGUN",      "(153.00, 130.30, 5.00)",  respawn_default, 8),
+// ]
+//
+// for i, item in enumerate(items):
+//     item.id = f"gen{i}{item.item_name.lower()}"
+//     item.item_id = item_ids_by_name[item.item_name]
+//
+//     cog.outl(f"GENERATOR {item.id} = {item.pos} 359 {item.item_id} {item.respawn} {item.respawn} {item.amount}")
+// ]]]
+GENERATOR gen0bribe = (160.00, 137.00, 2.00) 359 COLLECT_33 1280 1280 1
+GENERATOR gen1double_fire = (154.50, 161.50, 2.00) 359 COLLECT_36 7680 7680 1
+GENERATOR gen2double_fire = (162.00, 121.50, 4.00) 359 COLLECT_36 7680 7680 1
+GENERATOR gen3dual_pistol = (141.40, 111.40, 2.00) 359 COLLECT_10 7680 7680 20
+GENERATOR gen4electro = (133.50, 126.50, 2.00) 359 COLLECT_03 15360 15360 2
+GENERATOR gen5flame = (180.50, 131.00, 2.00) 359 COLLECT_08 15360 15360 13
+GENERATOR gen6gang = (166.00, 133.00, 2.00) 359 COLLECT_40 7680 7680 1
+GENERATOR gen7grenade = (153.30, 137.50, 4.20) 359 COLLECT_05 2560 2560 10
+GENERATOR gen8hp = (154.50, 126.50, 2.00) 359 COLLECT_30 1280 1280 1
+GENERATOR gen9mg = (140.50, 141.50, 2.00) 359 COLLECT_01 7680 7680 12
+GENERATOR gen10mg = (165.00, 146.00, 4.00) 359 COLLECT_01 7680 7680 12
+GENERATOR gen11molotov = (175.50, 111.50, 2.00) 359 COLLECT_04 7680 7680 15
+GENERATOR gen12pistol = (159.00, 131.00, 6.00) 359 COLLECT_00 1280 1280 1
+GENERATOR gen13rl = (166.00, 119.00, 6.00) 359 COLLECT_02 15360 15360 3
+GENERATOR gen14shotgun = (148.60, 122.40, 2.00) 359 COLLECT_06 7680 7680 20
+GENERATOR gen15shotgun = (148.90, 145.30, 2.00) 359 COLLECT_06 7680 7680 20
+GENERATOR gen16shotgun = (158.50, 122.40, 3.00) 359 COLLECT_06 7680 7680 20
+GENERATOR gen17smg = (176.00, 150.00, 2.00) 359 COLLECT_09 7680 7680 12
+GENERATOR gen18vehgun = (153.00, 130.30, 5.00) 359 COLLECT_18 7680 7680 8
+// [[[end]]]
+
+MAP_ZONE cityinfo = (/* cars  */ 1000, 50, 50, 900,
+                 /* chars */ 1000, 0, 0, 0, 1000, 0, 0)
+
+COUNTER forever = 1
+
+// [[[cog
+// # PLAYER COUNTERS
+// for i in players:
+//   cog.outl("")
+//   cog.outl(f"COUNTER cop_searching_p{i} = 0")
+//   cog.outl(f"COUNTER cop_search_p{i} = 0")
+// ]]]
+
+COUNTER cop_searching_p1 = 0
+COUNTER cop_search_p1 = 0
+
+COUNTER cop_searching_p2 = 0
+COUNTER cop_search_p2 = 0
+
+COUNTER cop_searching_p3 = 0
+COUNTER cop_search_p3 = 0
+
+COUNTER cop_searching_p4 = 0
+COUNTER cop_search_p4 = 0
+
+COUNTER cop_searching_p5 = 0
+COUNTER cop_search_p5 = 0
+
+COUNTER cop_searching_p6 = 0
+COUNTER cop_search_p6 = 0
+// [[[end]]]
+
+loop:
+WHILE (forever = 1)
+    EXEC
+
+    // [[[cog
+    // # ANY POLICE LEVEL EXPLODES
+    // for i in players:
+    //   cog.outl(f"")
+    //   cog.outl(f"// ion strike p{i}")
+    //   cog.outl(f"IF (CHECK_CHARACTER_HEALTH (p{i}, 0))")
+    //   cog.outl(f"  IF (CHECK_HEADS_GREATER(p{i}, 0))")
+    //   cog.outl(f"    IF (cop_searching_p{i} = 0)")
+    //   cog.outl(f"      SET cop_searching_p{i} = 1")
+    //   cog.outl(f"      SET cop_search_p{i} = {cop_search_time_in_sec * 8}")
+    //   cog.outl(f"    ELSE")
+    //   cog.outl(f"      IF (cop_search_p{i} > 0)")
+    //   cog.outl(f"        --cop_search_p{i}")
+    //   cog.outl(f"      ELSE")
+    //   cog.outl(f"        SET cop_searching_p{i} = 0")
+    //   cog.outl(f"        SET cop_search_p{i} = 0")
+    //   cog.outl(f"        EXPLODE_LARGE (p{i})")
+    //   cog.outl(f"        KILL_CHAR (p{i})")
+    //   cog.outl(f"      ENDIF")
+    //   cog.outl(f"    ENDIF")
+    //   cog.outl(f"  ENDIF")
+    //   cog.outl(f"  IF (NOT(CHECK_HEADS_GREATER(p{i}, 0)))")
+    //   cog.outl(f"    IF (cop_searching_p{i} = 1)")
+    //   cog.outl(f"      SET cop_searching_p{i} = 0")
+    //   cog.outl(f"      SET cop_search_p{i} = 0")
+    //   cog.outl(f"    ELSE")
+    //   cog.outl(f"      DO_NOWT")
+    //   cog.outl(f"    ENDIF")
+    //   cog.outl(f"  ENDIF")
+    //   cog.outl(f"ELSE")
+    //   cog.outl(f"  DO_NOWT")
+    //   cog.outl(f"ENDIF")
+    // ]]]
+
+    // ion strike p1
+    IF (CHECK_CHARACTER_HEALTH (p1, 0))
+      IF (CHECK_HEADS_GREATER(p1, 0))
+        IF (cop_searching_p1 = 0)
+          SET cop_searching_p1 = 1
+          SET cop_search_p1 = 112
+        ELSE
+          IF (cop_search_p1 > 0)
+            --cop_search_p1
+          ELSE
+            SET cop_searching_p1 = 0
+            SET cop_search_p1 = 0
+            EXPLODE_LARGE (p1)
+            KILL_CHAR (p1)
+          ENDIF
+        ENDIF
+      ENDIF
+      IF (NOT(CHECK_HEADS_GREATER(p1, 0)))
+        IF (cop_searching_p1 = 1)
+          SET cop_searching_p1 = 0
+          SET cop_search_p1 = 0
+        ELSE
+          DO_NOWT
+        ENDIF
+      ENDIF
+    ELSE
+      DO_NOWT
+    ENDIF
+
+    // ion strike p2
+    IF (CHECK_CHARACTER_HEALTH (p2, 0))
+      IF (CHECK_HEADS_GREATER(p2, 0))
+        IF (cop_searching_p2 = 0)
+          SET cop_searching_p2 = 1
+          SET cop_search_p2 = 112
+        ELSE
+          IF (cop_search_p2 > 0)
+            --cop_search_p2
+          ELSE
+            SET cop_searching_p2 = 0
+            SET cop_search_p2 = 0
+            EXPLODE_LARGE (p2)
+            KILL_CHAR (p2)
+          ENDIF
+        ENDIF
+      ENDIF
+      IF (NOT(CHECK_HEADS_GREATER(p2, 0)))
+        IF (cop_searching_p2 = 1)
+          SET cop_searching_p2 = 0
+          SET cop_search_p2 = 0
+        ELSE
+          DO_NOWT
+        ENDIF
+      ENDIF
+    ELSE
+      DO_NOWT
+    ENDIF
+
+    // ion strike p3
+    IF (CHECK_CHARACTER_HEALTH (p3, 0))
+      IF (CHECK_HEADS_GREATER(p3, 0))
+        IF (cop_searching_p3 = 0)
+          SET cop_searching_p3 = 1
+          SET cop_search_p3 = 112
+        ELSE
+          IF (cop_search_p3 > 0)
+            --cop_search_p3
+          ELSE
+            SET cop_searching_p3 = 0
+            SET cop_search_p3 = 0
+            EXPLODE_LARGE (p3)
+            KILL_CHAR (p3)
+          ENDIF
+        ENDIF
+      ENDIF
+      IF (NOT(CHECK_HEADS_GREATER(p3, 0)))
+        IF (cop_searching_p3 = 1)
+          SET cop_searching_p3 = 0
+          SET cop_search_p3 = 0
+        ELSE
+          DO_NOWT
+        ENDIF
+      ENDIF
+    ELSE
+      DO_NOWT
+    ENDIF
+
+    // ion strike p4
+    IF (CHECK_CHARACTER_HEALTH (p4, 0))
+      IF (CHECK_HEADS_GREATER(p4, 0))
+        IF (cop_searching_p4 = 0)
+          SET cop_searching_p4 = 1
+          SET cop_search_p4 = 112
+        ELSE
+          IF (cop_search_p4 > 0)
+            --cop_search_p4
+          ELSE
+            SET cop_searching_p4 = 0
+            SET cop_search_p4 = 0
+            EXPLODE_LARGE (p4)
+            KILL_CHAR (p4)
+          ENDIF
+        ENDIF
+      ENDIF
+      IF (NOT(CHECK_HEADS_GREATER(p4, 0)))
+        IF (cop_searching_p4 = 1)
+          SET cop_searching_p4 = 0
+          SET cop_search_p4 = 0
+        ELSE
+          DO_NOWT
+        ENDIF
+      ENDIF
+    ELSE
+      DO_NOWT
+    ENDIF
+
+    // ion strike p5
+    IF (CHECK_CHARACTER_HEALTH (p5, 0))
+      IF (CHECK_HEADS_GREATER(p5, 0))
+        IF (cop_searching_p5 = 0)
+          SET cop_searching_p5 = 1
+          SET cop_search_p5 = 112
+        ELSE
+          IF (cop_search_p5 > 0)
+            --cop_search_p5
+          ELSE
+            SET cop_searching_p5 = 0
+            SET cop_search_p5 = 0
+            EXPLODE_LARGE (p5)
+            KILL_CHAR (p5)
+          ENDIF
+        ENDIF
+      ENDIF
+      IF (NOT(CHECK_HEADS_GREATER(p5, 0)))
+        IF (cop_searching_p5 = 1)
+          SET cop_searching_p5 = 0
+          SET cop_search_p5 = 0
+        ELSE
+          DO_NOWT
+        ENDIF
+      ENDIF
+    ELSE
+      DO_NOWT
+    ENDIF
+
+    // ion strike p6
+    IF (CHECK_CHARACTER_HEALTH (p6, 0))
+      IF (CHECK_HEADS_GREATER(p6, 0))
+        IF (cop_searching_p6 = 0)
+          SET cop_searching_p6 = 1
+          SET cop_search_p6 = 112
+        ELSE
+          IF (cop_search_p6 > 0)
+            --cop_search_p6
+          ELSE
+            SET cop_searching_p6 = 0
+            SET cop_search_p6 = 0
+            EXPLODE_LARGE (p6)
+            KILL_CHAR (p6)
+          ENDIF
+        ENDIF
+      ENDIF
+      IF (NOT(CHECK_HEADS_GREATER(p6, 0)))
+        IF (cop_searching_p6 = 1)
+          SET cop_searching_p6 = 0
+          SET cop_search_p6 = 0
+        ELSE
+          DO_NOWT
+        ENDIF
+      ENDIF
+    ELSE
+      DO_NOWT
+    ENDIF
+    // [[[end]]]
+
+    // [[[cog
+    // # WARPCAR WARP
+    // for i in players:
+    //   cog.outl(f"")
+    //   cog.outl(f"IF (IS_CHARACTER_IN_CAR(p{i}, warpcar))")
+    //   cog.outl(f"  WARP_FROM_CAR_TO_POINT (p{i}, 155.50, 138.50, 4.00, 270)")
+    //   cog.outl(f"ENDIF")
+    // ]]]
+
+    IF (IS_CHARACTER_IN_CAR(p1, warpcar))
+      WARP_FROM_CAR_TO_POINT (p1, 155.50, 138.50, 4.00, 270)
+    ENDIF
+
+    IF (IS_CHARACTER_IN_CAR(p2, warpcar))
+      WARP_FROM_CAR_TO_POINT (p2, 155.50, 138.50, 4.00, 270)
+    ENDIF
+
+    IF (IS_CHARACTER_IN_CAR(p3, warpcar))
+      WARP_FROM_CAR_TO_POINT (p3, 155.50, 138.50, 4.00, 270)
+    ENDIF
+
+    IF (IS_CHARACTER_IN_CAR(p4, warpcar))
+      WARP_FROM_CAR_TO_POINT (p4, 155.50, 138.50, 4.00, 270)
+    ENDIF
+
+    IF (IS_CHARACTER_IN_CAR(p5, warpcar))
+      WARP_FROM_CAR_TO_POINT (p5, 155.50, 138.50, 4.00, 270)
+    ENDIF
+
+    IF (IS_CHARACTER_IN_CAR(p6, warpcar))
+      WARP_FROM_CAR_TO_POINT (p6, 155.50, 138.50, 4.00, 270)
+    ENDIF
+    // [[[end]]]
+
+    // [[[cog
+    // # OOB AUTOKILL
+    // for i in players:
+    //   cog.outl(f"IF (LOCATE_CHARACTER_ANY_MEANS (p{i}, {oob_area}))")
+    //   cog.outl(f"  KILL_CHAR(p{i})")
+    //   cog.outl(f"ENDIF")
+    // ]]]
+    IF (LOCATE_CHARACTER_ANY_MEANS (p1, /*x,y,z*/ 160.00, 137.00, 1.00, /*w,h*/ 60.00, 60.00))
+      KILL_CHAR(p1)
+    ENDIF
+    IF (LOCATE_CHARACTER_ANY_MEANS (p2, /*x,y,z*/ 160.00, 137.00, 1.00, /*w,h*/ 60.00, 60.00))
+      KILL_CHAR(p2)
+    ENDIF
+    IF (LOCATE_CHARACTER_ANY_MEANS (p3, /*x,y,z*/ 160.00, 137.00, 1.00, /*w,h*/ 60.00, 60.00))
+      KILL_CHAR(p3)
+    ENDIF
+    IF (LOCATE_CHARACTER_ANY_MEANS (p4, /*x,y,z*/ 160.00, 137.00, 1.00, /*w,h*/ 60.00, 60.00))
+      KILL_CHAR(p4)
+    ENDIF
+    IF (LOCATE_CHARACTER_ANY_MEANS (p5, /*x,y,z*/ 160.00, 137.00, 1.00, /*w,h*/ 60.00, 60.00))
+      KILL_CHAR(p5)
+    ENDIF
+    IF (LOCATE_CHARACTER_ANY_MEANS (p6, /*x,y,z*/ 160.00, 137.00, 1.00, /*w,h*/ 60.00, 60.00))
+      KILL_CHAR(p6)
+    ENDIF
+    // [[[end]]]
+
+    ENDEXEC
+ENDWHILE
+RETURN
+
+
+LEVELSTART
+
+SET_DIR_OF_TV_VANS (159.50, 138.50)
+DECLARE_POLICELEVEL (5)
+
+// [[[cog
+// # SWITCH ALL PREVIOUSLY DECLARED ITEMS / WEAPONS GENERATORS ON
+// for item in items:
+//     cog.outl(f"SWITCH_GENERATOR ({item.id}, ON)")
+// ]]]
+SWITCH_GENERATOR (gen0bribe, ON)
+SWITCH_GENERATOR (gen1double_fire, ON)
+SWITCH_GENERATOR (gen2double_fire, ON)
+SWITCH_GENERATOR (gen3dual_pistol, ON)
+SWITCH_GENERATOR (gen4electro, ON)
+SWITCH_GENERATOR (gen5flame, ON)
+SWITCH_GENERATOR (gen6gang, ON)
+SWITCH_GENERATOR (gen7grenade, ON)
+SWITCH_GENERATOR (gen8hp, ON)
+SWITCH_GENERATOR (gen9mg, ON)
+SWITCH_GENERATOR (gen10mg, ON)
+SWITCH_GENERATOR (gen11molotov, ON)
+SWITCH_GENERATOR (gen12pistol, ON)
+SWITCH_GENERATOR (gen13rl, ON)
+SWITCH_GENERATOR (gen14shotgun, ON)
+SWITCH_GENERATOR (gen15shotgun, ON)
+SWITCH_GENERATOR (gen16shotgun, ON)
+SWITCH_GENERATOR (gen17smg, ON)
+SWITCH_GENERATOR (gen18vehgun, ON)
+// [[[end]]]
+
+SET_CAR_BULLETPROOF(warpcar, ON)
+SET_CAR_FLAMEPROOF(warpcar, ON)
+SET_CAR_ROCKETPROOF(warpcar, ON)
+SET_CAR_NO_COLLIDE(warpcar)
+
+GOSUB loop:
+LEVELEND
