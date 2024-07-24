@@ -1,0 +1,18 @@
+[MapFiles]
+Description = Enter A Tank
+GMPFile = map-enter-a-tank.gmp
+STYFile = wil.sty
+SCRFile = map-enter-a-tank.scr
+MISFile = map-enter-a-tank.mis
+Version = 0.1
+
+[Map]
+UpDate = 2024-07-24
+CreaDate = 2024-07-24
+DuskSupport = true
+Author = https://github.com/Vorschreibung
+
+[Host]
+police = true
+game_type = point
+s_limit = 900000000

@@ -1,0 +1,572 @@
+// [RUN] cog -r %
+//
+// @NOTE This is using https://nedbatchelder.com/code/cog run manually on this
+//       source file.
+
+// [[[cog
+// # GLOBAL COG VARIABLES
+// players = range(1, 7)
+// oob_area = "/*x,y,z*/ 84.00, 178.00, 1.00, /*w,h*/ 60.00, 60.00"
+// ]]]
+// [[[end]]]
+
+PLAYER_PED p1 = (62.50, 193.50, 2.00)  9 180
+PLAYER_PED p2 = (83.50, 179.50, 2.00)  9 180
+PLAYER_PED p3 = (110.50, 171.50, 2.00) 9 0
+PLAYER_PED p4 = (52.50, 164.50, 2.00)  9 0
+PLAYER_PED p5 = (101.50, 181.50, 3.00) 9 0
+PLAYER_PED p6 = (76.50, 192.00, 2.00)  9 270
+
+COUNTER p1respawning = 0
+COUNTER p2respawning = 0
+COUNTER p3respawning = 0
+COUNTER p4respawning = 0
+COUNTER p5respawning = 0
+COUNTER p6respawning = 0
+
+// [[[cog
+// # WEAPONS / ITEMS
+// from collections import namedtuple
+// from dataclasses import dataclass
+//
+// @dataclass
+// class Item:
+//     item_name: str
+//     pos: str
+//     respawn: int
+//     amount: int = 0
+//     id: str = ""
+//     item_id: str = ""
+//
+// item_ids_by_name = {
+//     "GANG": "COLLECT_40",
+//     "HP": "COLLECT_30",
+//     "MG": "COLLECT_01",
+//     "MOLOTOV": "COLLECT_04",
+//     "RL": "COLLECT_02",
+//     "SMG": "COLLECT_09",
+//     "VEHBOMB": "COLLECT_15",
+//     "VEHGUN": "COLLECT_18",
+//     "VEHMINE": "COLLECT_17",
+// }
+//
+// ammo_smg = 2
+// ammo_molotov = 2
+//
+// # @NOTE a jiffy is something like 130 respawn time units
+// respawn_default = 7800
+//
+// items = [
+//     Item("GANG",    "(63.00, 184.00, 2.00)",  respawn_default, 10),
+//     Item("HP",      "(100.50, 172.50, 2.00)", respawn_default, 1),
+//     Item("HP",      "(107.00, 195.00, 2.00)", respawn_default, 1),
+//     Item("HP",      "(118.50, 177.50, 2.00)", respawn_default, 1),
+//     Item("HP",      "(52.50, 164.00, 2.00)",  respawn_default, 1),
+//     Item("HP",      "(57.50, 188.50, 2.00)",  respawn_default, 1),
+//     Item("HP",      "(62.50, 171.50, 4.00)",  respawn_default, 1),
+//     Item("HP",      "(81.00, 164.00, 2.00)",  respawn_default, 1),
+//     Item("HP",      "(81.50, 183.00, 2.00)",  respawn_default, 1),
+//     Item("HP",      "(92.50, 185.50, 2.00)",  respawn_default, 1),
+//     Item("MOLOTOV", "(111.50, 186.50, 4.00)", respawn_default, ammo_molotov),
+//     Item("MOLOTOV", "(115.50, 177.50, 5.00)", respawn_default, ammo_molotov),
+//     Item("MOLOTOV", "(116.00, 195.00, 5.00)", respawn_default, ammo_molotov),
+//     Item("MOLOTOV", "(64.00, 175.00, 5.00)",  respawn_default, ammo_molotov),
+//     Item("MOLOTOV", "(68.00, 194.50, 4.00)",  respawn_default, ammo_molotov),
+//     Item("MOLOTOV", "(71.00, 173.00, 3.00)",  respawn_default, ammo_molotov),
+//     Item("MOLOTOV", "(91.00, 185.50, 5.00)",  respawn_default, ammo_molotov),
+//     Item("MOLOTOV", "(91.00, 185.50, 5.00)",  respawn_default, ammo_molotov),
+//     Item("RL",      "(89.50, 185.50, 2.00)",  respawn_default * 3, 1),
+//     Item("SMG",     "(100.50, 174.50, 2.00)", respawn_default, ammo_smg),
+//     Item("SMG",     "(105.00, 183.00, 2.00)", respawn_default, ammo_smg),
+//     Item("SMG",     "(107.00, 164.00, 2.00)", respawn_default, ammo_smg),
+//     Item("SMG",     "(110.50, 188.50, 2.00)", respawn_default, ammo_smg),
+//     Item("SMG",     "(118.00, 169.00, 2.00)", respawn_default, ammo_smg),
+//     Item("SMG",     "(123.50, 183.50, 2.00)", respawn_default, ammo_smg),
+//     Item("SMG",     "(50.00, 177.00, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(51.50, 165.50, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(52.00, 195.00, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(61.00, 197.00, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(61.50, 175.50, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(68.00, 164.00, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(71.50, 184.00, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(76.50, 192.50, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(78.50, 173.00, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(78.50, 201.50, 6.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(85.00, 173.00, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(88.50, 172.50, 6.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(92.50, 176.50, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(93.50, 190.00, 2.00)",  respawn_default, ammo_smg),
+//     Item("SMG",     "(95.00, 164.00, 2.00)",  respawn_default, ammo_smg),
+//     Item("VEHBOMB", "(59.00, 203.00, 3.00)",  respawn_default * 3, 2),
+//     Item("VEHBOMB", "(60.00, 186.50, 4.00)",  respawn_default * 3, 2),
+//     Item("VEHBOMB", "(98.00, 159.00, 2.00)",  respawn_default * 3, 2),
+//     Item("VEHGUN",  "(114.00, 195.00, 2.00)", respawn_default * 3, 4),
+//     Item("VEHGUN",  "(44.00, 171.00, 3.00)",  respawn_default * 3, 4),
+// ]
+//
+// for i, item in enumerate(items):
+//     item.id = f"gen{i}{item.item_name.lower()}"
+//     item.item_id = item_ids_by_name[item.item_name]
+//
+//     cog.outl(f"GENERATOR {item.id} = {item.pos} 359 {item.item_id} {item.respawn} {item.respawn} {item.amount}")
+// ]]]
+GENERATOR gen0gang = (63.00, 184.00, 2.00) 359 COLLECT_40 7800 7800 10
+GENERATOR gen1hp = (100.50, 172.50, 2.00) 359 COLLECT_30 7800 7800 1
+GENERATOR gen2hp = (107.00, 195.00, 2.00) 359 COLLECT_30 7800 7800 1
+GENERATOR gen3hp = (118.50, 177.50, 2.00) 359 COLLECT_30 7800 7800 1
+GENERATOR gen4hp = (52.50, 164.00, 2.00) 359 COLLECT_30 7800 7800 1
+GENERATOR gen5hp = (57.50, 188.50, 2.00) 359 COLLECT_30 7800 7800 1
+GENERATOR gen6hp = (62.50, 171.50, 4.00) 359 COLLECT_30 7800 7800 1
+GENERATOR gen7hp = (81.00, 164.00, 2.00) 359 COLLECT_30 7800 7800 1
+GENERATOR gen8hp = (81.50, 183.00, 2.00) 359 COLLECT_30 7800 7800 1
+GENERATOR gen9hp = (92.50, 185.50, 2.00) 359 COLLECT_30 7800 7800 1
+GENERATOR gen10molotov = (111.50, 186.50, 4.00) 359 COLLECT_04 7800 7800 2
+GENERATOR gen11molotov = (115.50, 177.50, 5.00) 359 COLLECT_04 7800 7800 2
+GENERATOR gen12molotov = (116.00, 195.00, 5.00) 359 COLLECT_04 7800 7800 2
+GENERATOR gen13molotov = (64.00, 175.00, 5.00) 359 COLLECT_04 7800 7800 2
+GENERATOR gen14molotov = (68.00, 194.50, 4.00) 359 COLLECT_04 7800 7800 2
+GENERATOR gen15molotov = (71.00, 173.00, 3.00) 359 COLLECT_04 7800 7800 2
+GENERATOR gen16molotov = (91.00, 185.50, 5.00) 359 COLLECT_04 7800 7800 2
+GENERATOR gen17molotov = (91.00, 185.50, 5.00) 359 COLLECT_04 7800 7800 2
+GENERATOR gen18rl = (89.50, 185.50, 2.00) 359 COLLECT_02 23400 23400 1
+GENERATOR gen19smg = (100.50, 174.50, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen20smg = (105.00, 183.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen21smg = (107.00, 164.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen22smg = (110.50, 188.50, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen23smg = (118.00, 169.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen24smg = (123.50, 183.50, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen25smg = (50.00, 177.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen26smg = (51.50, 165.50, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen27smg = (52.00, 195.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen28smg = (61.00, 197.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen29smg = (61.50, 175.50, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen30smg = (68.00, 164.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen31smg = (71.50, 184.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen32smg = (76.50, 192.50, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen33smg = (78.50, 173.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen34smg = (78.50, 201.50, 6.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen35smg = (85.00, 173.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen36smg = (88.50, 172.50, 6.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen37smg = (92.50, 176.50, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen38smg = (93.50, 190.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen39smg = (95.00, 164.00, 2.00) 359 COLLECT_09 7800 7800 2
+GENERATOR gen40vehbomb = (59.00, 203.00, 3.00) 359 COLLECT_15 23400 23400 2
+GENERATOR gen41vehbomb = (60.00, 186.50, 4.00) 359 COLLECT_15 23400 23400 2
+GENERATOR gen42vehbomb = (98.00, 159.00, 2.00) 359 COLLECT_15 23400 23400 2
+GENERATOR gen43vehgun = (114.00, 195.00, 2.00) 359 COLLECT_18 23400 23400 4
+GENERATOR gen44vehgun = (44.00, 171.00, 3.00) 359 COLLECT_18 23400 23400 4
+// [[[end]]]
+
+SET_GANG_INFO (ygang, 9, PISTOL, PISTOL, PISTOL, 6, 0.00, 0.00, 0.00, 0, KRSNABUS, -1)
+MAP_ZONE ygangzone = (/* cars  */ 1000, 600, 10, 5,
+                      /* chars */ 1000, 0, 0, 0, 700, 0, 0)
+
+DECLARE_POLICELEVEL (6)
+
+COUNTER forever = 1
+
+COUNTER ticks = 1
+COUNTER jiffies = 0  // a 'jiffy' is something like 1.06x of a second
+COUNTER minpolicelevel = 0
+
+ONSCREEN_COUNTER display
+
+loop:
+    WHILE (forever = 1)
+        EXEC
+        ++ticks
+
+        // advance time
+        IF (ticks = 8)
+            SET ticks = 0
+            IF (jiffies < 9999)  // ceil 'jiffies', anything > 9999 will glitch the ONSCREEN_COUNTER
+                ++jiffies
+            ENDIF
+        ENDIF
+
+        // {{{ set policelevel depending on jiffies passed
+        IF ((jiffies = 453) AND (ticks = 0))  // ~8 min
+            DISPLAY_MESSAGE (5502)
+            SET minpolicelevel = 3
+
+            IF (CHECK_CHARACTER_HEALTH(p1, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p1, 3)
+                GIVE_WEAPON (p1, SILENCED_MACHINE_GUN, 5)
+            ENDIF
+            IF (CHECK_CHARACTER_HEALTH(p2, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p2, 3)
+                GIVE_WEAPON (p2, SILENCED_MACHINE_GUN, 5)
+            ENDIF
+            IF (CHECK_CHARACTER_HEALTH(p3, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p3, 3)
+                GIVE_WEAPON (p3, SILENCED_MACHINE_GUN, 5)
+            ENDIF
+            IF (CHECK_CHARACTER_HEALTH(p4, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p4, 3)
+                GIVE_WEAPON (p4, SILENCED_MACHINE_GUN, 5)
+            ENDIF
+            IF (CHECK_CHARACTER_HEALTH(p5, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p5, 3)
+                GIVE_WEAPON (p5, SILENCED_MACHINE_GUN, 5)
+            ENDIF
+            IF (CHECK_CHARACTER_HEALTH(p6, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p6, 3)
+                GIVE_WEAPON (p6, SILENCED_MACHINE_GUN, 5)
+            ENDIF
+        ENDIF
+        IF ((jiffies = 792) AND (ticks = 0))  // ~14 min
+            DISPLAY_MESSAGE (5503)
+            SET minpolicelevel = 5
+
+            IF (CHECK_CHARACTER_HEALTH(p1, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p1, 5)
+                GIVE_WEAPON (p1, SILENCED_MACHINE_GUN, 10)
+            ENDIF
+            IF (CHECK_CHARACTER_HEALTH(p2, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p2, 5)
+                GIVE_WEAPON (p2, SILENCED_MACHINE_GUN, 10)
+            ENDIF
+            IF (CHECK_CHARACTER_HEALTH(p3, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p3, 5)
+                GIVE_WEAPON (p3, SILENCED_MACHINE_GUN, 10)
+            ENDIF
+            IF (CHECK_CHARACTER_HEALTH(p4, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p4, 5)
+                GIVE_WEAPON (p4, SILENCED_MACHINE_GUN, 10)
+            ENDIF
+            IF (CHECK_CHARACTER_HEALTH(p5, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p5, 5)
+                GIVE_WEAPON (p5, SILENCED_MACHINE_GUN, 10)
+            ENDIF
+            IF (CHECK_CHARACTER_HEALTH(p6, 0))
+                ALTER_WANTED_LEVEL_NO_DROP (p6, 5)
+                GIVE_WEAPON (p6, SILENCED_MACHINE_GUN, 10)
+            ENDIF
+        ENDIF
+        // }}}
+
+        // [[[cog
+        // # PLAYER RESPAWNING
+        // # cog.outl(f"EXEC")
+        // for i in players:
+        //   cog.outl(f"")
+        //   cog.outl(f"// p{i} respawn")
+        //   cog.outl(f"IF (HAS_CHARACTER_DIED(p{i}))")
+        //   cog.outl(f"  SET p{i}respawning = 1")
+        //   cog.outl(f"ENDIF")
+        //   cog.outl(f"IF ((p{i}respawning = 1) AND (NOT(HAS_CHARACTER_DIED(p{i}))))")
+        //   cog.outl(f"  SET p{i}respawning = 0")
+        //   cog.outl(f"  ALTER_WANTED_LEVEL (p{i}, 0)")
+        //   cog.outl(f"  IF (minpolicelevel = 3)")
+        //   cog.outl(f"    ALTER_WANTED_LEVEL (p{i}, 3)")
+        //   cog.outl(f"    GIVE_WEAPON (p{i}, SILENCED_MACHINE_GUN, 5)")
+        //   cog.outl(f"  ELSE")
+        //   cog.outl(f"    IF (minpolicelevel = 5)")
+        //   cog.outl(f"      ALTER_WANTED_LEVEL (p{i}, 5)")
+        //   cog.outl(f"      GIVE_WEAPON (p{i}, SILENCED_MACHINE_GUN, 10)")
+        //   cog.outl(f"    ELSE")
+        //   cog.outl(f"      GIVE_WEAPON (p{i}, PISTOL, 3)")
+        //   cog.outl(f"    ENDIF")
+        //   cog.outl(f"  ENDIF")
+        //   cog.outl(f"ENDIF")
+        // cog.outl(f"")
+        // # cog.outl(f"ENDEXEC")
+        // ]]]
+
+        // p1 respawn
+        IF (HAS_CHARACTER_DIED(p1))
+          SET p1respawning = 1
+        ENDIF
+        IF ((p1respawning = 1) AND (NOT(HAS_CHARACTER_DIED(p1))))
+          SET p1respawning = 0
+          ALTER_WANTED_LEVEL (p1, 0)
+          IF (minpolicelevel = 3)
+            ALTER_WANTED_LEVEL (p1, 3)
+            GIVE_WEAPON (p1, SILENCED_MACHINE_GUN, 5)
+          ELSE
+            IF (minpolicelevel = 5)
+              ALTER_WANTED_LEVEL (p1, 5)
+              GIVE_WEAPON (p1, SILENCED_MACHINE_GUN, 10)
+            ELSE
+              GIVE_WEAPON (p1, PISTOL, 3)
+            ENDIF
+          ENDIF
+        ENDIF
+
+        // p2 respawn
+        IF (HAS_CHARACTER_DIED(p2))
+          SET p2respawning = 1
+        ENDIF
+        IF ((p2respawning = 1) AND (NOT(HAS_CHARACTER_DIED(p2))))
+          SET p2respawning = 0
+          ALTER_WANTED_LEVEL (p2, 0)
+          IF (minpolicelevel = 3)
+            ALTER_WANTED_LEVEL (p2, 3)
+            GIVE_WEAPON (p2, SILENCED_MACHINE_GUN, 5)
+          ELSE
+            IF (minpolicelevel = 5)
+              ALTER_WANTED_LEVEL (p2, 5)
+              GIVE_WEAPON (p2, SILENCED_MACHINE_GUN, 10)
+            ELSE
+              GIVE_WEAPON (p2, PISTOL, 3)
+            ENDIF
+          ENDIF
+        ENDIF
+
+        // p3 respawn
+        IF (HAS_CHARACTER_DIED(p3))
+          SET p3respawning = 1
+        ENDIF
+        IF ((p3respawning = 1) AND (NOT(HAS_CHARACTER_DIED(p3))))
+          SET p3respawning = 0
+          ALTER_WANTED_LEVEL (p3, 0)
+          IF (minpolicelevel = 3)
+            ALTER_WANTED_LEVEL (p3, 3)
+            GIVE_WEAPON (p3, SILENCED_MACHINE_GUN, 5)
+          ELSE
+            IF (minpolicelevel = 5)
+              ALTER_WANTED_LEVEL (p3, 5)
+              GIVE_WEAPON (p3, SILENCED_MACHINE_GUN, 10)
+            ELSE
+              GIVE_WEAPON (p3, PISTOL, 3)
+            ENDIF
+          ENDIF
+        ENDIF
+
+        // p4 respawn
+        IF (HAS_CHARACTER_DIED(p4))
+          SET p4respawning = 1
+        ENDIF
+        IF ((p4respawning = 1) AND (NOT(HAS_CHARACTER_DIED(p4))))
+          SET p4respawning = 0
+          ALTER_WANTED_LEVEL (p4, 0)
+          IF (minpolicelevel = 3)
+            ALTER_WANTED_LEVEL (p4, 3)
+            GIVE_WEAPON (p4, SILENCED_MACHINE_GUN, 5)
+          ELSE
+            IF (minpolicelevel = 5)
+              ALTER_WANTED_LEVEL (p4, 5)
+              GIVE_WEAPON (p4, SILENCED_MACHINE_GUN, 10)
+            ELSE
+              GIVE_WEAPON (p4, PISTOL, 3)
+            ENDIF
+          ENDIF
+        ENDIF
+
+        // p5 respawn
+        IF (HAS_CHARACTER_DIED(p5))
+          SET p5respawning = 1
+        ENDIF
+        IF ((p5respawning = 1) AND (NOT(HAS_CHARACTER_DIED(p5))))
+          SET p5respawning = 0
+          ALTER_WANTED_LEVEL (p5, 0)
+          IF (minpolicelevel = 3)
+            ALTER_WANTED_LEVEL (p5, 3)
+            GIVE_WEAPON (p5, SILENCED_MACHINE_GUN, 5)
+          ELSE
+            IF (minpolicelevel = 5)
+              ALTER_WANTED_LEVEL (p5, 5)
+              GIVE_WEAPON (p5, SILENCED_MACHINE_GUN, 10)
+            ELSE
+              GIVE_WEAPON (p5, PISTOL, 3)
+            ENDIF
+          ENDIF
+        ENDIF
+
+        // p6 respawn
+        IF (HAS_CHARACTER_DIED(p6))
+          SET p6respawning = 1
+        ENDIF
+        IF ((p6respawning = 1) AND (NOT(HAS_CHARACTER_DIED(p6))))
+          SET p6respawning = 0
+          ALTER_WANTED_LEVEL (p6, 0)
+          IF (minpolicelevel = 3)
+            ALTER_WANTED_LEVEL (p6, 3)
+            GIVE_WEAPON (p6, SILENCED_MACHINE_GUN, 5)
+          ELSE
+            IF (minpolicelevel = 5)
+              ALTER_WANTED_LEVEL (p6, 5)
+              GIVE_WEAPON (p6, SILENCED_MACHINE_GUN, 10)
+            ELSE
+              GIVE_WEAPON (p6, PISTOL, 3)
+            ENDIF
+          ENDIF
+        ENDIF
+
+        // [[[end]]]
+
+        // [[[cog
+        // # WIN CONDITION - GRANT 987654321 SCORE IF PLAYER IS IN A TANK FOR A LITTLE WHILE
+        // for i in players:
+        //   cog.outl(f"")
+        //   cog.outl(f"IF ((CHECK_CHARACTER_HEALTH(p{i}, 0)) AND (IS_CHARACTER_IN_MODEL(p{i}, TANK)))")
+        //   cog.outl(f"  DELAY (30)")
+        //   cog.outl(f"  IF (IS_CHARACTER_IN_MODEL(p{i}, TANK))")
+        //   cog.outl(f"    DISPLAY_MESSAGE (5032)")
+        //   cog.outl(f"    ADD_SCORE (p{i}, 987654321)")
+        //   cog.outl(f"  ENDIF")
+        //   cog.outl(f"ENDIF")
+        // cog.outl(f"")
+        // ]]]
+
+        IF ((CHECK_CHARACTER_HEALTH(p1, 0)) AND (IS_CHARACTER_IN_MODEL(p1, TANK)))
+          DELAY (30)
+          IF (IS_CHARACTER_IN_MODEL(p1, TANK))
+            DISPLAY_MESSAGE (5032)
+            ADD_SCORE (p1, 987654321)
+          ENDIF
+        ENDIF
+
+        IF ((CHECK_CHARACTER_HEALTH(p2, 0)) AND (IS_CHARACTER_IN_MODEL(p2, TANK)))
+          DELAY (30)
+          IF (IS_CHARACTER_IN_MODEL(p2, TANK))
+            DISPLAY_MESSAGE (5032)
+            ADD_SCORE (p2, 987654321)
+          ENDIF
+        ENDIF
+
+        IF ((CHECK_CHARACTER_HEALTH(p3, 0)) AND (IS_CHARACTER_IN_MODEL(p3, TANK)))
+          DELAY (30)
+          IF (IS_CHARACTER_IN_MODEL(p3, TANK))
+            DISPLAY_MESSAGE (5032)
+            ADD_SCORE (p3, 987654321)
+          ENDIF
+        ENDIF
+
+        IF ((CHECK_CHARACTER_HEALTH(p4, 0)) AND (IS_CHARACTER_IN_MODEL(p4, TANK)))
+          DELAY (30)
+          IF (IS_CHARACTER_IN_MODEL(p4, TANK))
+            DISPLAY_MESSAGE (5032)
+            ADD_SCORE (p4, 987654321)
+          ENDIF
+        ENDIF
+
+        IF ((CHECK_CHARACTER_HEALTH(p5, 0)) AND (IS_CHARACTER_IN_MODEL(p5, TANK)))
+          DELAY (30)
+          IF (IS_CHARACTER_IN_MODEL(p5, TANK))
+            DISPLAY_MESSAGE (5032)
+            ADD_SCORE (p5, 987654321)
+          ENDIF
+        ENDIF
+
+        IF ((CHECK_CHARACTER_HEALTH(p6, 0)) AND (IS_CHARACTER_IN_MODEL(p6, TANK)))
+          DELAY (30)
+          IF (IS_CHARACTER_IN_MODEL(p6, TANK))
+            DISPLAY_MESSAGE (5032)
+            ADD_SCORE (p6, 987654321)
+          ENDIF
+        ENDIF
+
+        // [[[end]]]
+
+        // // lock all car a player is in
+        // IF ((CHECK_CHARACTER_HEALTH(p1, 0)) AND (IS_CHARACTER_IN_ANY_CAR(p1)))
+        //     STORE_CAR_CHARACTER_IS_IN(p1, p1car)
+        //     CHANGE_CAR_LOCK (p1car, LOCKOUT_PLAYER)
+        // ENDIF
+
+
+        // [[[cog
+        // # OOB AUTOKILL
+        // for i in players:
+        //   cog.outl(f"IF (LOCATE_CHARACTER_ANY_MEANS (p{i}, {oob_area}))")
+        //   cog.outl(f"  KILL_CHAR(p{i})")
+        //   cog.outl(f"ENDIF")
+        // ]]]
+        IF (LOCATE_CHARACTER_ANY_MEANS (p1, /*x,y,z*/ 84.00, 178.00, 1.00, /*w,h*/ 60.00, 60.00))
+          KILL_CHAR(p1)
+        ENDIF
+        IF (LOCATE_CHARACTER_ANY_MEANS (p2, /*x,y,z*/ 84.00, 178.00, 1.00, /*w,h*/ 60.00, 60.00))
+          KILL_CHAR(p2)
+        ENDIF
+        IF (LOCATE_CHARACTER_ANY_MEANS (p3, /*x,y,z*/ 84.00, 178.00, 1.00, /*w,h*/ 60.00, 60.00))
+          KILL_CHAR(p3)
+        ENDIF
+        IF (LOCATE_CHARACTER_ANY_MEANS (p4, /*x,y,z*/ 84.00, 178.00, 1.00, /*w,h*/ 60.00, 60.00))
+          KILL_CHAR(p4)
+        ENDIF
+        IF (LOCATE_CHARACTER_ANY_MEANS (p5, /*x,y,z*/ 84.00, 178.00, 1.00, /*w,h*/ 60.00, 60.00))
+          KILL_CHAR(p5)
+        ENDIF
+        IF (LOCATE_CHARACTER_ANY_MEANS (p6, /*x,y,z*/ 84.00, 178.00, 1.00, /*w,h*/ 60.00, 60.00))
+          KILL_CHAR(p6)
+        ENDIF
+        // [[[end]]]
+
+        ENDEXEC
+    ENDWHILE
+RETURN
+
+LEVELSTART
+SET_AMBIENT_LEVEL (0.30, 3)
+SET_SHADING_LEVEL (20)
+
+// [[[cog
+// # SWITCH ALL PREVIOUSLY DECLARED ITEMS / WEAPONS GENERATORS ON
+// for item in items:
+//     cog.outl(f"SWITCH_GENERATOR ({item.id}, ON)")
+// ]]]
+SWITCH_GENERATOR (gen0gang, ON)
+SWITCH_GENERATOR (gen1hp, ON)
+SWITCH_GENERATOR (gen2hp, ON)
+SWITCH_GENERATOR (gen3hp, ON)
+SWITCH_GENERATOR (gen4hp, ON)
+SWITCH_GENERATOR (gen5hp, ON)
+SWITCH_GENERATOR (gen6hp, ON)
+SWITCH_GENERATOR (gen7hp, ON)
+SWITCH_GENERATOR (gen8hp, ON)
+SWITCH_GENERATOR (gen9hp, ON)
+SWITCH_GENERATOR (gen10molotov, ON)
+SWITCH_GENERATOR (gen11molotov, ON)
+SWITCH_GENERATOR (gen12molotov, ON)
+SWITCH_GENERATOR (gen13molotov, ON)
+SWITCH_GENERATOR (gen14molotov, ON)
+SWITCH_GENERATOR (gen15molotov, ON)
+SWITCH_GENERATOR (gen16molotov, ON)
+SWITCH_GENERATOR (gen17molotov, ON)
+SWITCH_GENERATOR (gen18rl, ON)
+SWITCH_GENERATOR (gen19smg, ON)
+SWITCH_GENERATOR (gen20smg, ON)
+SWITCH_GENERATOR (gen21smg, ON)
+SWITCH_GENERATOR (gen22smg, ON)
+SWITCH_GENERATOR (gen23smg, ON)
+SWITCH_GENERATOR (gen24smg, ON)
+SWITCH_GENERATOR (gen25smg, ON)
+SWITCH_GENERATOR (gen26smg, ON)
+SWITCH_GENERATOR (gen27smg, ON)
+SWITCH_GENERATOR (gen28smg, ON)
+SWITCH_GENERATOR (gen29smg, ON)
+SWITCH_GENERATOR (gen30smg, ON)
+SWITCH_GENERATOR (gen31smg, ON)
+SWITCH_GENERATOR (gen32smg, ON)
+SWITCH_GENERATOR (gen33smg, ON)
+SWITCH_GENERATOR (gen34smg, ON)
+SWITCH_GENERATOR (gen35smg, ON)
+SWITCH_GENERATOR (gen36smg, ON)
+SWITCH_GENERATOR (gen37smg, ON)
+SWITCH_GENERATOR (gen38smg, ON)
+SWITCH_GENERATOR (gen39smg, ON)
+SWITCH_GENERATOR (gen40vehbomb, ON)
+SWITCH_GENERATOR (gen41vehbomb, ON)
+SWITCH_GENERATOR (gen42vehbomb, ON)
+SWITCH_GENERATOR (gen43vehgun, ON)
+SWITCH_GENERATOR (gen44vehgun, ON)
+// [[[end]]]
+
+// [[[cog
+// # INITIAL SPAWN WEAPONS
+// for i in players:
+//   cog.outl(f"IF (CHECK_CHARACTER_HEALTH(p1, 0)) GIVE_WEAPON (p{i}, PISTOL, 3) ENDIF")
+// ]]]
+IF (CHECK_CHARACTER_HEALTH(p1, 0)) GIVE_WEAPON (p1, PISTOL, 3) ENDIF
+IF (CHECK_CHARACTER_HEALTH(p1, 0)) GIVE_WEAPON (p2, PISTOL, 3) ENDIF
+IF (CHECK_CHARACTER_HEALTH(p1, 0)) GIVE_WEAPON (p3, PISTOL, 3) ENDIF
+IF (CHECK_CHARACTER_HEALTH(p1, 0)) GIVE_WEAPON (p4, PISTOL, 3) ENDIF
+IF (CHECK_CHARACTER_HEALTH(p1, 0)) GIVE_WEAPON (p5, PISTOL, 3) ENDIF
+IF (CHECK_CHARACTER_HEALTH(p1, 0)) GIVE_WEAPON (p6, PISTOL, 3) ENDIF
+// [[[end]]]
+
+// ADD_ONSCREEN_COUNTER (display, jiffies)
+
+GOSUB loop:
+LEVELEND
